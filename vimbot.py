@@ -4,7 +4,7 @@ from io import BytesIO
 from PIL import Image
 from playwright.sync_api import sync_playwright
 
-vimium_path = "./vimium-master"
+vimium_path = "C:/Users/jrspa/PycharmProjects/fixingVim/vimium-master"
 
 
 class Vimbot:
@@ -44,13 +44,15 @@ class Vimbot:
 
     def type(self, text):
         time.sleep(1)
-        self.page.keyboard.type(text)
+        self.page.keyboard.type(text,delay=2)
         self.page.keyboard.press("Enter")
 
     def click(self, text):
-        self.page.keyboard.type(text)
+        time.sleep(1)
+        self.page.keyboard.type(text, delay=2)
 
     def capture(self):
+        time.sleep(1)
         # capture a screenshot with vim bindings on the screen
         self.page.keyboard.press("Escape")
         self.page.keyboard.type("f")
