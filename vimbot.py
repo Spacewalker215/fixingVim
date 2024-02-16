@@ -2,60 +2,67 @@ import time
 from io import BytesIO
 
 from PIL import Image
-from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
 
 vimium_path = "C:/Users/jrspa/PycharmProjects/fixingVim/vimium-master"
 
-
 class Vimbot:
-    def __init__(self, headless=False):
-        self.context = (
-            sync_playwright()
-            .start()
-            .chromium.launch_persistent_context(
-                "",
-                headless=headless,
-                args=[
-                    f"--disable-extensions-except={vimium_path}",
-                    f"--load-extension={vimium_path}",
-                ],
-                ignore_https_errors=True,
-            )
+    async def initialize(self, url="https://www.google.com", headless=False):
+        self.playwright = await async_playwright().start()
+        self.context = await self.playwright.chromium.launch_persistent_context(
+            "",
+            headless=headless,
+            args=[
+                f"--disable-extensions-except={vimium_path}",
+                f"--load-extension={vimium_path}",
+            ],
+            ignore_https_errors=True,
         )
+        self.page = await self.context.new_page()
+        await self.page.goto(url)
+        await self.page.set_viewport_size({"width": 1080, "height": 720})
 
-        self.page = self.context.new_page()
-        self.page.set_viewport_size({"width": 1080, "height": 720})
+    async def get_current_page(self):
+        return self.page.url
 
-    def perform_action(self, action):
-        if "done" in action:
-            return True
-        if "click" in action and "type" in action:
-            self.click(action["click"])
-            self.type(action["type"])
+    async def perform_action(self, action):
         if "navigate" in action:
-            self.navigate(action["navigate"])
-        elif "type" in action:
-            self.type(action["type"])
+            await self.navigate(action["navigate"])
+        elif "type" in action and isinstance(action["type"], str):
+            await self.type(action["type"])
         elif "click" in action:
-            self.click(action["click"])
+            await self.click(action["click"])
+        elif "done" in action:
+            return True
+        return False
+    def write_to_notepad(self, products):
+        # Code to open notepad and write down the products
+        # For simplicity, let's assume you have a method for this
+        print("Writing to Notepad:")
+        for product in products:
+            print(product)
 
-    def navigate(self, url):
-        self.page.goto(url=url if "://" in url else "https://" + url, timeout=60000)
+    async def navigate(self, url):
+        await self.page.goto(url=url if "://" in url else "https://" + url, timeout=60000)
 
-    def type(self, text):
+    async def type(self, text):
         time.sleep(1)
-        self.page.keyboard.type(text,delay=2)
-        self.page.keyboard.press("Enter")
+        await self.page.keyboard.type(text,delay=2)
+        await self.page.keyboard.press("Enter")
 
-    def click(self, text):
+    async def click(self, text):
         time.sleep(1)
-        self.page.keyboard.type(text, delay=2)
+        await self.page.keyboard.type(text, delay=2)
 
-    def capture(self):
+    async def capture(self):
         time.sleep(1)
         # capture a screenshot with vim bindings on the screen
-        self.page.keyboard.press("Escape")
-        self.page.keyboard.type("f")
+        await self.page.keyboard.press("Escape")
+        await self.page.keyboard.type("f")
 
-        screenshot = Image.open(BytesIO(self.page.screenshot())).convert("RGB")
+        screenshot = Image.open(BytesIO(await self.page.screenshot())).convert("RGB")
         return screenshot
+
+    async def close(self):
+        await self.context.close()
+        await self.playwright.stop()
